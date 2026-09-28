@@ -1,20 +1,22 @@
 -- Migration: aprovação de posts pelo cliente + notificação por e-mail
 -- Roda contra um projeto Supabase que já tem o schema.sql original aplicado.
 -- Não apaga nem altera dados existentes — só adiciona.
+-- Seguro para rodar mais de uma vez (idempotente), caso uma tentativa anterior
+-- tenha parado no meio.
 
 -- =========================================================
 -- 1. Coluna de status de aprovação em posts
 -- =========================================================
 
 alter table posts
-  add column approval_status text not null default 'pendente'
+  add column if not exists approval_status text not null default 'pendente'
   check (approval_status in ('pendente', 'aprovado', 'alteracao_solicitada'));
 
 -- =========================================================
 -- 2. Histórico de respostas do cliente
 -- =========================================================
 
-create table post_feedback (
+create table if not exists post_feedback (
   id          uuid primary key default gen_random_uuid(),
   post_id     uuid references posts(id) on delete cascade not null,
   client_name text not null,
@@ -23,9 +25,11 @@ create table post_feedback (
   created_at  timestamptz not null default now()
 );
 
-create index post_feedback_post_id_idx on post_feedback(post_id);
+create index if not exists post_feedback_post_id_idx on post_feedback(post_id);
 
 alter table post_feedback enable row level security;
+
+drop policy if exists "owner reads own post_feedback" on post_feedback;
 
 create policy "owner reads own post_feedback"
   on post_feedback for select
@@ -43,6 +47,10 @@ create policy "owner reads own post_feedback"
 -- =========================================================
 -- 3. get_posts_by_token passa a devolver approval_status também
 -- =========================================================
+
+-- Precisa apagar antes de recriar: o Postgres não deixa mudar o tipo de
+-- retorno (as colunas da tabela) de uma função existente com "or replace".
+drop function if exists get_posts_by_token(uuid);
 
 create or replace function get_posts_by_token(p_token uuid)
 returns table (
