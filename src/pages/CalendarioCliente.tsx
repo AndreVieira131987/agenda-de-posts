@@ -16,7 +16,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AppLayout } from '../components/AppLayout'
 import { getMediaPublicUrl, removeStorageObjects, supabase } from '../lib/supabaseClient'
-import { POST_TYPE_LABEL, STATUS_COLOR, STATUS_LABEL, type Client, type Post } from '../types'
+import { APPROVAL_COLOR, APPROVAL_LABEL, POST_TYPE_LABEL, STATUS_COLOR, STATUS_LABEL, type Client, type Post } from '../types'
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
@@ -50,7 +50,7 @@ export function CalendarioCliente() {
     setLoading(true)
     supabase
       .from('posts')
-      .select('*, post_media(*)')
+      .select('*, post_media(*), post_feedback(*)')
       .eq('client_id', clientId)
       .gte('scheduled_at', gridStart.toISOString())
       .lte('scheduled_at', gridEnd.toISOString())
@@ -216,29 +216,44 @@ function DayDetailModal({
         <div className="mb-4 flex flex-col gap-2">
           {posts.map((post) => {
             const firstMedia = post.post_media?.[0]
+            const latestFeedback = [...(post.post_feedback ?? [])].sort(
+              (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+            )[0]
             return (
-              <div key={post.id} className="flex items-center gap-3 rounded-lg border border-secondary/30 p-2">
-                <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-light">
-                  {firstMedia && (
-                    <img
-                      src={getMediaPublicUrl(firstMedia.storage_path)}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  )}
+              <div key={post.id} className="rounded-lg border border-secondary/30 p-2">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 shrink-0 overflow-hidden rounded bg-light">
+                    {firstMedia && (
+                      <img
+                        src={getMediaPublicUrl(firstMedia.storage_path)}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-dark">{post.caption || POST_TYPE_LABEL[post.post_type]}</p>
+                    <div className="flex flex-wrap gap-1">
+                      <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] ${STATUS_COLOR[post.status]}`}>
+                        {STATUS_LABEL[post.status]}
+                      </span>
+                      <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] ${APPROVAL_COLOR[post.approval_status]}`}>
+                        {APPROVAL_LABEL[post.approval_status]}
+                      </span>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => onEdit(post)} className="text-xs text-brand hover:underline">
+                    Editar
+                  </button>
+                  <button type="button" onClick={() => onDelete(post)} className="text-xs text-red-600 hover:underline">
+                    Excluir
+                  </button>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-dark">{post.caption || POST_TYPE_LABEL[post.post_type]}</p>
-                  <span className={`inline-block rounded px-1.5 py-0.5 text-[10px] ${STATUS_COLOR[post.status]}`}>
-                    {STATUS_LABEL[post.status]}
-                  </span>
-                </div>
-                <button type="button" onClick={() => onEdit(post)} className="text-xs text-brand hover:underline">
-                  Editar
-                </button>
-                <button type="button" onClick={() => onDelete(post)} className="text-xs text-red-600 hover:underline">
-                  Excluir
-                </button>
+                {post.approval_status === 'alteracao_solicitada' && latestFeedback && (
+                  <p className="mt-2 rounded bg-amber-50 p-2 text-xs text-dark/80">
+                    <span className="font-medium">{latestFeedback.client_name}:</span> {latestFeedback.message}
+                  </p>
+                )}
               </div>
             )
           })}

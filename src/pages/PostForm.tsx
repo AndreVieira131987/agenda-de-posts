@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AppLayout } from '../components/AppLayout'
 import { InstagramPostMockup } from '../components/InstagramPostMockup'
 import { getMediaPublicUrl, MEDIA_BUCKET, removeStorageObjects, sanitizeFileName, supabase } from '../lib/supabaseClient'
-import type { Client, Post, PostMedia, PostStatus, PostType } from '../types'
+import { APPROVAL_COLOR, APPROVAL_LABEL, type ApprovalStatus, type Client, type Post, type PostFeedback, type PostMedia, type PostStatus, type PostType } from '../types'
 import { captureVideoThumbnail } from '../lib/videoThumbnail'
 
 interface MediaSlot {
@@ -39,6 +39,8 @@ export function PostForm() {
     return dateParam ? `${dateParam}T12:00` : ''
   })
   const [slots, setSlots] = useState<MediaSlot[]>([])
+  const [approvalStatus, setApprovalStatus] = useState<ApprovalStatus>('pendente')
+  const [feedbackHistory, setFeedbackHistory] = useState<PostFeedback[]>([])
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(isEditing)
@@ -63,7 +65,7 @@ export function PostForm() {
     if (!postId) return
     supabase
       .from('posts')
-      .select('*, post_media(*)')
+      .select('*, post_media(*), post_feedback(*)')
       .eq('id', postId)
       .single()
       .then(({ data }) => {
@@ -75,6 +77,12 @@ export function PostForm() {
         setPostType(post.post_type)
         setCaption(post.caption ?? '')
         setStatus(post.status)
+        setApprovalStatus(post.approval_status)
+        setFeedbackHistory(
+          [...(post.post_feedback ?? [])].sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+          ),
+        )
         setScheduledAt(post.scheduled_at ? toLocalInputValue(post.scheduled_at) : '')
         const media = (post.post_media ?? []).sort((a, b) => a.position - b.position)
         setSlots(
@@ -299,6 +307,27 @@ export function PostForm() {
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
         <form onSubmit={handleSubmit} className="rounded-xl border border-secondary/30 bg-white p-6 shadow-sm">
           <h1 className="mb-4 font-serif text-xl font-semibold text-dark">{isEditing ? 'Editar post' : 'Novo post'}</h1>
+
+          {isEditing && (
+            <div className="mb-4">
+              <span className={`inline-block rounded px-2 py-1 text-xs font-medium ${APPROVAL_COLOR[approvalStatus]}`}>
+                {APPROVAL_LABEL[approvalStatus]}
+              </span>
+              {feedbackHistory.length > 0 && (
+                <div className="mt-2 flex flex-col gap-2">
+                  {feedbackHistory.map((f) => (
+                    <div key={f.id} className="rounded-lg border border-secondary/30 bg-light p-2 text-xs text-dark/80">
+                      <p className="font-medium">
+                        {f.client_name} · {f.action === 'aprovado' ? 'Aprovou' : 'Propôs alteração'} ·{' '}
+                        {new Date(f.created_at).toLocaleString('pt-BR')}
+                      </p>
+                      {f.message && <p className="mt-1">{f.message}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <label className="mb-1 block text-sm font-medium text-dark/80">Tipo de post</label>
           <select

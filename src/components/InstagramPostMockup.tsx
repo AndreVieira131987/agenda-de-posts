@@ -1,4 +1,4 @@
-import { useEffect, useState, type PointerEvent as ReactPointerEvent, type SyntheticEvent } from 'react'
+import { useEffect, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type SyntheticEvent } from 'react'
 import type { PostType } from '../types'
 
 export interface MockupMediaItem {
@@ -13,6 +13,7 @@ interface InstagramPostMockupProps {
   media: MockupMediaItem[]
   caption?: string | null
   postType: PostType
+  children?: ReactNode
 }
 
 const SWIPE_THRESHOLD = 50
@@ -45,7 +46,7 @@ function useViewportSize() {
   return size
 }
 
-export function InstagramPostMockup({ handle, avatarUrl, media, caption, postType }: InstagramPostMockupProps) {
+export function InstagramPostMockup({ handle, avatarUrl, media, caption, postType, children }: InstagramPostMockupProps) {
   const [index, setIndex] = useState(0)
   const [dragStartX, setDragStartX] = useState<number | null>(null)
   const [dragX, setDragX] = useState(0)
@@ -218,6 +219,8 @@ export function InstagramPostMockup({ handle, avatarUrl, media, caption, postTyp
           <span className="font-semibold text-gray-900">{handle}</span> {caption}
         </p>
       )}
+
+      {children}
     </div>
   )
 }

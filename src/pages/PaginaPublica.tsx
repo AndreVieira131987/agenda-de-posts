@@ -15,8 +15,9 @@ import { ptBR } from 'date-fns/locale'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { InstagramPostMockup } from '../components/InstagramPostMockup'
+import { PostApproval } from '../components/PostApproval'
 import { getMediaPublicUrl, supabase } from '../lib/supabaseClient'
-import { POST_TYPE_LABEL, type PostType } from '../types'
+import { POST_TYPE_LABEL, type ApprovalStatus, type PostType } from '../types'
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
@@ -41,6 +42,7 @@ interface PublicPost {
   post_type: string
   network: string
   status: string
+  approval_status: ApprovalStatus
   scheduled_at: string | null
   order_index: number
   media: PublicMedia[]
@@ -210,7 +212,20 @@ export function PaginaPublica() {
                   type: m.media_type,
                   posterUrl: m.thumbnail_path ? getMediaPublicUrl(m.thumbnail_path) : undefined,
                 }))}
-            />
+            >
+              <PostApproval
+                publicToken={token!}
+                postId={selectedPost.id}
+                clientName={client.name}
+                postCaption={selectedPost.caption}
+                postDate={selectedPost.scheduled_at}
+                approvalStatus={selectedPost.approval_status}
+                onSubmitted={(status) => {
+                  setSelectedPost((prev) => (prev ? { ...prev, approval_status: status } : prev))
+                  setPosts((prev) => prev.map((p) => (p.id === selectedPost.id ? { ...p, approval_status: status } : p)))
+                }}
+              />
+            </InstagramPostMockup>
           </div>
         </div>
       )}
