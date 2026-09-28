@@ -196,15 +196,16 @@ export function PaginaPublica() {
 
       {selectedPost && (
         <div
-          className="fixed inset-0 z-10 flex items-center justify-center bg-dark/40 px-4"
+          className="fixed inset-0 z-10 flex items-center justify-center bg-dark/40 px-4 py-6"
           onClick={() => setSelectedPost(null)}
         >
-          <div onClick={(e) => e.stopPropagation()}>
+          <div className="max-h-full overflow-y-auto rounded-lg" onClick={(e) => e.stopPropagation()}>
             <InstagramPostMockup
               handle={client.instagram_handle ?? client.name}
               avatarUrl={client.avatar_url}
               postType={selectedPost.post_type as PostType}
               caption={selectedPost.caption}
+              extraChromeHeight={160}
               media={selectedPost.media
                 .sort((a, b) => a.position - b.position)
                 .map((m) => ({

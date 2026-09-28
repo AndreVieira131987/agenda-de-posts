@@ -14,6 +14,8 @@ interface InstagramPostMockupProps {
   caption?: string | null
   postType: PostType
   children?: ReactNode
+  /** Extra vertical space to reserve for `children` when fitting the card to the screen. */
+  extraChromeHeight?: number
 }
 
 const SWIPE_THRESHOLD = 50
@@ -23,6 +25,9 @@ const DEFAULT_RATIO = 4 / 5
 const MIN_RATIO = 9 / 16
 const MAX_RATIO = 1.91
 const DEFAULT_CARD_WIDTH = 448 // matches Tailwind's max-w-md
+// Abaixo disso a legenda/handle quebram feio e os botões não cabem lado a lado —
+// melhor deixar o card com essa largura mínima e, no pior caso, rolar a página.
+const MIN_CARD_WIDTH = 280
 // Approx. space taken by the header, action icons, caption and surrounding page/modal padding.
 const CHROME_HEIGHT = 260
 const SIDE_MARGIN = 32
@@ -46,7 +51,15 @@ function useViewportSize() {
   return size
 }
 
-export function InstagramPostMockup({ handle, avatarUrl, media, caption, postType, children }: InstagramPostMockupProps) {
+export function InstagramPostMockup({
+  handle,
+  avatarUrl,
+  media,
+  caption,
+  postType,
+  children,
+  extraChromeHeight = 0,
+}: InstagramPostMockupProps) {
   const [index, setIndex] = useState(0)
   const [dragStartX, setDragStartX] = useState<number | null>(null)
   const [dragX, setDragX] = useState(0)
@@ -59,9 +72,12 @@ export function InstagramPostMockup({ handle, avatarUrl, media, caption, postTyp
   const swipeable = isCarousel && current?.type !== 'video'
   const isDragging = dragStartX !== null
 
-  const availableHeight = Math.max(200, viewport.height - CHROME_HEIGHT)
+  const availableHeight = Math.max(200, viewport.height - CHROME_HEIGHT - extraChromeHeight)
   const availableWidth = Math.max(240, viewport.width - SIDE_MARGIN)
-  const cardWidth = Math.min(DEFAULT_CARD_WIDTH, availableWidth, availableHeight * mediaRatio)
+  const cardWidth = Math.max(
+    MIN_CARD_WIDTH,
+    Math.min(DEFAULT_CARD_WIDTH, availableWidth, availableHeight * mediaRatio),
+  )
 
   useEffect(() => {
     setMediaRatio(DEFAULT_RATIO)
