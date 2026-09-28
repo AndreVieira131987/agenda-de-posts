@@ -2,8 +2,6 @@
 
 Ferramenta simples para organizar os posts que uma social media planeja para cada cliente, e demonstrar esse planejamento por um link público — sem custo e sem complicação.
 
-Contexto completo da pesquisa de mercado que motivou este projeto: [levantamentoinfo.md](levantamentoinfo.md).
-
 ## Stack
 
 - React + Vite + TypeScript + Tailwind CSS (front-end, hospedado no Netlify).
